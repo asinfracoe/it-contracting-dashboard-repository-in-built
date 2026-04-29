@@ -1,6 +1,4 @@
 # extractor/config.py
-# SharePoint and Azure sections removed
-# Files are read directly from quotes/ folder in repository
 
 import os
 from dotenv import load_dotenv
@@ -10,19 +8,19 @@ load_dotenv()
 # ── AI — Groq (Free) ─────────────────────
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
-# ── PDF Parsing — LlamaCloud (Free tier) ──
+# ── PDF Parsing — LlamaParse (Free tier) ──
 LLAMA_API_KEY = os.environ.get("LLAMA_API_KEY", "")
 
 # ── GitHub ────────────────────────────────
 GITHUB_TOKEN = os.environ.get("G_TOKEN", "")
 GITHUB_REPO  = os.environ.get("GITHUB_REPO", "")
 
-# ── Output ────────────────────────────────
+# ── Output Files ──────────────────────────
 OUTPUT_FILE    = "catalog_data.json"
 ERROR_LOG_FILE = "extraction_errors.json"
+PROGRESS_FILE  = "extraction_progress.json"
 
 # ── Folder to Category Mapping ────────────
-# Keys must match subfolder names in quotes/
 FOLDER_TO_CATEGORY = {
     "Cybersecurity":             "Cybersecurity",
     "Hosting":                   "Hosting",
@@ -54,7 +52,8 @@ KNOWN_VENDORS = [
     "CrowdStrike", "Zscaler", "CyberArk", "Forescout",
     "SolarWinds", "VMware", "NetApp", "Oracle", "IBM",
     "HPE", "Red Hat", "Pure Storage", "SailPoint", "Okta",
-    "Resonant Clinical Solutions",
+    "Resonant Clinical Solutions", "Thrive Operations",
+    "Copeland", "Atea",
 ]
 
 # ── Known Services ────────────────────────
@@ -68,6 +67,14 @@ KNOWN_SERVICES = [
     "Power BI Premium",
     "Power Apps Per User",
     "Microsoft Defender",
+    "Microsoft Defender for Endpoint",
+    "Microsoft Defender Threat Intelligence",
+    "Microsoft Defender Vulnerability Management",
+    "Microsoft Intune",
+    "Microsoft Azure",
+    "Dynamics 365",
+    "D365 Guides",
+    "D365 Remote Assist",
     "Trend Vision One Endpoint Security",
     "Apex One SaaS",
     "Trend Micro Email Security Advanced",
@@ -93,7 +100,7 @@ KNOWN_SERVICES = [
     "ServiceNow Software Asset Management",
 ]
 
-# ── LlamaCloud Settings ───────────────────
+# ── LlamaParse Settings ───────────────────
 LLAMA_TIER   = "agentic"
 LLAMA_EXPAND = ["markdown_full"]
 
