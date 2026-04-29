@@ -254,6 +254,13 @@ html,body{font-family:var(--fs);background:#E4E4E4;color:var(--dk);font-size:15p
 .empty-state .es-icon{font-size:3rem;margin-bottom:12px;}
 .empty-state .es-title{font-size:1.1rem;font-weight:700;color:var(--md);margin-bottom:8px;}
 .empty-state .es-body{font-size:.86rem;line-height:1.6;}
+.pod-row { background:#F9F9F9; }
+.pod-row.best { background:rgba(5,150,105,.05); }
+.pod-svc { color:#1A1A1A !important; }
+.pod-price { color:#059669 !important; }
+.pod-ven { color:#7D7D7D !important; }
+.cov-pct { color:#4A4A4A !important; }
+.cov-row { color:#1A1A1A !important; }
 </style>
 </head>
 <body>
@@ -1280,21 +1287,81 @@ function bvBuildBestSvc(sel){
 }
 
 function bvBuildCoverage(sel){
-  const el=document.getElementById('bv-coverage'); if(!el) return;
+  const el=document.getElementById('bv-coverage');
+  if(!el) return;
   const vendors=bvGetVendors(sel);
   const stats=vendors.map(v=>{
-    const covSvcs=sel.filter(s=>DB.some(r=>r.vendor===v&&getServices(r).includes(s)&&getPrice(r)>0));
+    const covSvcs=sel.filter(
+      s=>DB.some(r=>r.vendor===v&&getServices(r).includes(s)&&getPrice(r)>0)
+    );
     const pct=Math.round(covSvcs.length/sel.length*100);
-    return{v,covSvcs,pct,miss:sel.filter(s=>!covSvcs.includes(s))};
+    return{
+      v,
+      covSvcs,
+      pct,
+      miss:sel.filter(s=>!covSvcs.includes(s))
+    };
   }).sort((a,b)=>b.pct-a.pct);
+
   el.innerHTML=stats.map(vs=>{
-    const fc=vs.pct===100?GN:vs.pct>=60?AM:GD;
-    return`<div class="cov-row">
-      <div style="flex:0 0 100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${vbadge(vs.v)}</div>
-      <div class="cov-bar-wrap"><div class="cov-bar-fill" style="width:$${vs.pct}%;background:$${fc}"></div></div>
-      <div class="cov-pct" style="color:$${fc}">$${vs.pct}%</div>
-    </div>
-    $${vs.miss.length?`<div style="font-size:.68rem;color:$${GD};padding:2px 0 5px">Missing: $${esc(vs.miss.slice(0,3).join(', '))}$${vs.miss.length>3?' +'+(vs.miss.length-3):''}</div>`:''} `;
+    const fc=vs.pct===100?'#059669':vs.pct>=60?'#D97706':'#B0B0B0';
+    return `
+      <div style="margin-bottom:8px">
+        <div style="
+          display:flex;
+          align-items:center;
+          gap:8px;
+          padding:4px 0
+        ">
+          <div style="flex:0 0 110px;overflow:hidden">
+            <span style="
+              background:${vcol(vs.v)};
+              color:#ffffff;
+              padding:2px 8px;
+              border-radius:2px;
+              font-size:.76rem;
+              font-weight:700;
+              white-space:nowrap;
+              display:inline-block;
+              max-width:108px;
+              overflow:hidden;
+              text-overflow:ellipsis
+            ">${esc(vs.v)}</span>
+          </div>
+          <div style="
+            flex:1;
+            background:#F5F5F5;
+            border-radius:2px;
+            height:13px;
+            overflow:hidden
+          ">
+            <div style="
+              width:${vs.pct}%;
+              height:100%;
+              background:${fc};
+              border-radius:2px
+            "></div>
+          </div>
+          <div style="
+            flex:0 0 38px;
+            text-align:right;
+            font-weight:700;
+            font-size:.80rem;
+            color:${fc}
+          ">${vs.pct}%</div>
+        </div>
+        ${vs.miss.length?`
+          <div style="
+            font-size:.70rem;
+            color:#7D7D7D;
+            padding:2px 0 4px 6px;
+            line-height:1.4
+          ">Missing: <span style="color:#4A4A4A">${
+            esc(vs.miss.slice(0,3).join(', '))
+          }${vs.miss.length>3?' +'+(vs.miss.length-3)+' more':''}</span></div>
+        `:''}
+      </div>
+    `;
   }).join('');
 }
 
