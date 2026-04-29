@@ -1,0 +1,22 @@
+# extractor/requirements.txt
+
+# SharePoint / Microsoft Graph
+requests
+office365-rest-python-client
+
+# AI APIs
+anthropic
+llama-cloud
+groq
+
+# File Processing
+pandas
+openpyxl
+pdfplumber
+PyMuPDF
+pypdf
+python-docx
+
+# Utilities
+python-dotenv
+httpx
