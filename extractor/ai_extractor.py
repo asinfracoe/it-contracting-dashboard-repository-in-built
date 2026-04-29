@@ -24,14 +24,20 @@ groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 llama = None
 if LLAMA_API_KEY:
     try:
-        from llama_cloud import LlamaCloud
-        llama = LlamaCloud(api_key=LLAMA_API_KEY)
-        print("  ✅ LlamaCloud client initialised")
+        from llama_parse import LlamaParse
+        llama = LlamaParse(
+            api_key=LLAMA_API_KEY,
+            result_type="markdown",
+            verbose=False,
+        )
+        print("  ✅ LlamaParse client initialised")
     except ImportError:
-        print("  ⚠️  LlamaCloud not installed")
+        print(
+            "  ⚠️  llama-parse not installed — "
+            "using pdfplumber only"
+        )
     except Exception as e:
-        print(f"  ⚠️  LlamaCloud init error: {e}")
-
+        print(f"  ⚠️  LlamaParse init error: {e}")
 
 class AIExtractor:
 
@@ -47,84 +53,52 @@ class AIExtractor:
     # ══════════════════════════════════════
     #  LLAMACLOUD — PDF PARSING
     # ══════════════════════════════════════
-    def parse_pdf_with_llama_sync(self, file_bytes, filename):
+    def parse_pdf_with_llama_sync(
+        self, file_bytes, filename
+    ):
         """
-        Parse PDF with LlamaCloud synchronously.
-        Fixed: added required version argument.
+        Parse PDF with LlamaParse.
+        Falls back gracefully if unavailable.
         """
         if not llama:
             return ""
+    
         try:
-            print(f"    📄 LlamaCloud: {filename[:45]}...")
-
+            print(f"    📄 LlamaParse: {filename[:45]}...")
+    
             import tempfile
             import os as _os
-
-            # Write to temp file
+    
             with tempfile.NamedTemporaryFile(
                 suffix='.pdf', delete=False
             ) as tmp:
                 tmp.write(file_bytes)
                 tmp_path = tmp.name
-
+    
             try:
-                with open(tmp_path, 'rb') as f:
-                    upload_response = llama.files.upload(
-                        file=(filename, f, 'application/pdf')
+                documents = llama.load_data(tmp_path)
+                if documents:
+                    text = "\n\n".join(
+                        doc.text for doc in documents
+                        if doc.text
                     )
-
-                file_id = upload_response.id
-
-                # Fixed: added version='2024-01-01' argument
-                job = llama.parsing.create_job(
-                    file_id=file_id,
-                    parse_instruction=(
-                        "Extract all text, tables, and pricing "
-                        "information. Preserve table structure. "
-                        "Include all numbers, prices, quantities "
-                        "and service descriptions."
-                    ),
-                    version="2024-01-01",
-                )
-
-                job_id = job.id
-
-                # Poll for completion
-                import time
-                for attempt in range(30):
-                    time.sleep(3)
-                    status = llama.parsing.get_job(job_id)
-                    if status.status == 'SUCCESS':
-                        break
-                    elif status.status in ['ERROR', 'FAILED']:
-                        raise Exception(
-                            f"LlamaCloud job failed: {status.status}"
+                    if text and len(text) > 100:
+                        self.stats["llama_success"] += 1
+                        print(
+                            f"    ✅ LlamaParse: "
+                            f"{len(text):,} chars"
                         )
-
-                # Get result
-                result = llama.parsing.get_job_result_markdown(
-                    job_id=job_id
-                )
-                markdown = getattr(result, 'markdown', '') or ''
-
-                if markdown and len(markdown) > 100:
-                    self.stats["llama_success"] += 1
-                    print(
-                        f"    ✅ LlamaCloud: {len(markdown):,} chars"
-                    )
-                    return markdown
-
-                self.stats["llama_failed"] += 1
-                return ""
-
+                        return text
             finally:
                 _os.unlink(tmp_path)
-
+    
+            self.stats["llama_failed"] += 1
+            return ""
+    
         except Exception as e:
             self.stats["llama_failed"] += 1
-            print(f"    ⚠️  LlamaCloud failed: {e}")
+            print(f"    ⚠️  LlamaParse failed: {e}")
             return ""
-
     # ══════════════════════════════════════
     #  GROQ — AI EXTRACTION
     # ══════════════════════════════════════
