@@ -1,0 +1,77 @@
+name: Update Catalog from Quote Files
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'quotes/**'
+      - 'extractor/**'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1-5'
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.G_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('extractor/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          cd extractor
+          pip install -r requirements.txt
+
+      - name: List quote files found
+        run: |
+          echo "=== Quote files in repository ==="
+          find quotes/ -type f \
+            \( -name "*.pdf" \
+            -o -name "*.xlsx" \
+            -o -name "*.xls" \
+            -o -name "*.csv" \
+            -o -name "*.docx" \
+            -o -name "*.txt" \) \
+            2>/dev/null \
+            | sort \
+            || echo "No quotes/ folder found yet"
+
+      - name: Run extraction
+        env:
+          GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
+          LLAMA_API_KEY: ${{ secrets.LLAMA_API_KEY }}
+          G_TOKEN:       ${{ secrets.G_TOKEN }}
+          GITHUB_REPO:   ${{ github.repository }}
+        run: |
+          cd extractor
+          python main.py
+
+      - name: Commit catalog_data.json
+        run: |
+          git config --global user.email "catalog-bot@github.com"
+          git config --global user.name  "Catalog Bot"
+          git add catalog_data.json
+          git diff --staged --quiet || \
+            git commit -m \
+            "Auto-update catalog $(date +'%Y-%m-%d %H:%M') UTC"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
