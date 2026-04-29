@@ -1218,24 +1218,62 @@ function bvBuildVerdict(sel,matchRows){
 }
 
 function bvBuildBestSvc(sel){
-  const el=document.getElementById('bv-best-svc'); if(!el) return;
+  const el=document.getElementById('bv-best-svc');
+  if(!el) return;
   el.innerHTML=sel.map(svc=>{
     const rows=DB.filter(r=>getServices(r).includes(svc)&&getPrice(r)>0);
-    if(!rows.length) return`<div class="pod-row"><div class="pod-svc">$${esc(svc)}</div><div class="pod-r" style="color:$${GD};font-size:.76rem">No quotes</div></div>`;
+    if(!rows.length) return `<div class="pod-row">
+      <div class="pod-svc" style="color:#4A4A4A">${esc(svc)}</div>
+      <div class="pod-r" style="color:#7D7D7D;font-size:.76rem">No quotes</div>
+    </div>`;
     const sorted=[...rows].sort((a,b)=>getPrice(a)-getPrice(b));
     const best=sorted[0];
     const ps2=rows.map(r=>getPrice(r));
     const av2=ps2.reduce((a,b)=>a+b,0)/ps2.length;
     const pct=av2>0?Math.round((getPrice(best)-av2)/av2*100):0;
     const allVens=[...new Set(rows.map(r=>r.vendor))];
-    return`<div class="pod-row best">
-      <div class="pod-svc">${esc(svc.length>32?svc.substring(0,32)+'…':svc)}
-        <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px">$${allVens.slice(0,3).map(v=>`<span style="background:$${vcol(v)};color:#fff;border-radius:2px;padding:2px 5px;font-size:.64rem;font-weight:700">$${esc(v)}</span>`).join('')}$${allVens.length>3?`<span style="font-size:.66rem;color:$${GD}">+$${allVens.length-3}</span>`:''}</div>
+    return `<div class="pod-row best" style="background:rgba(5,150,105,.06);border-left:3px solid #059669">
+      <div class="pod-svc" style="color:#1A1A1A;font-size:.82rem;font-weight:600;flex:1;line-height:1.4">
+        ${esc(svc.length>34?svc.substring(0,34)+'…':svc)}
+        <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">
+          ${allVens.slice(0,3).map(v=>`
+            <span style="
+              background:${vcol(v)};
+              color:#ffffff;
+              border-radius:2px;
+              padding:2px 6px;
+              font-size:.66rem;
+              font-weight:700;
+              display:inline-block
+            ">${esc(v)}</span>
+          `).join('')}
+          ${allVens.length>3?`
+            <span style="
+              font-size:.68rem;
+              color:#7D7D7D;
+              padding:2px 4px
+            ">+${allVens.length-3} more</span>
+          `:''}
+        </div>
       </div>
-      <div class="pod-r">
-        <div class="pod-price">${fmt(getPrice(best))}</div>
-        <div class="pod-ven">$${esc(best.vendor)} · $${esc(getUnit(best))}</div>
-        <div style="font-size:.66rem;color:$${pct<0?GN:AM};font-weight:700;margin-top:2px">$${pct>0?'+':''}$${pct}% vs avg $${fmt(av2)}</div>
+      <div class="pod-r" style="text-align:right;flex-shrink:0">
+        <div style="
+          font-family:monospace;
+          font-weight:700;
+          color:#059669;
+          font-size:.92rem
+        ">${fmt(getPrice(best))}</div>
+        <div style="
+          font-size:.70rem;
+          color:#7D7D7D;
+          margin-top:2px
+        ">${esc(best.vendor)} · ${esc(getUnit(best))}</div>
+        <div style="
+          font-size:.68rem;
+          font-weight:700;
+          color:${pct<0?'#059669':'#D97706'};
+          margin-top:3px
+        ">${pct>0?'+':''}${pct}% vs avg ${fmt(av2)}</div>
       </div>
     </div>`;
   }).join('');
@@ -1261,9 +1299,11 @@ function bvBuildCoverage(sel){
 }
 
 function bvBuildStrategy(sel){
-  const el=document.getElementById('bv-strategy'); if(!el) return;
+  const el=document.getElementById('bv-strategy');
+  if(!el) return;
   const vendors=bvGetVendors(sel);
-  const mixMap={};let mixTot=0;
+  const mixMap={};
+  let mixTot=0;
   sel.forEach(s=>{
     const rows=DB.filter(r=>getServices(r).includes(s)&&getPrice(r)>0);
     if(!rows.length) return;
@@ -1272,14 +1312,99 @@ function bvBuildStrategy(sel){
     mixTot+=getPrice(bRow);
   });
   const mixVens=[...new Set(Object.values(mixMap).map(m=>m.vendor))];
+
   let html=`<div style="margin-bottom:11px">
-    <div style="font-size:.70rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:$${GN};border-bottom:1px solid $${GNL};padding-bottom:4px;margin-bottom:6px">Best-of-Breed Strategy</div>
-    <div style="font-family:monospace;font-weight:700;color:$${GN};font-size:.96rem;margin-bottom:5px">$${fmt(mixTot)}</div>
-    <div style="font-size:.78rem;color:$${MD};margin-bottom:8px">All $${sel.length} services · <strong>${mixVens.length} vendors</strong></div>
-    $${Object.entries(mixMap).slice(0,6).map(([s,m])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #F8F8F8;font-size:.76rem"><span style="color:$${MD};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%">$${esc(s.length>22?s.substring(0,22)+'…':s)}</span>$${vbadge(m.vendor)}<span style="font-family:monospace;font-weight:700;color:$${GN}">$${fmt(m.price)}</span></div>`).join('')}
-    $${Object.keys(mixMap).length>6?`<div style="font-size:.70rem;color:$${GD};padding-top:4px">+${Object.keys(mixMap).length-6} more services</div>`:''}
+    <div style="
+      font-size:.70rem;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.6px;
+      color:#059669;
+      border-bottom:1px solid #D1FAE5;
+      padding-bottom:5px;
+      margin-bottom:8px
+    ">Best-of-Breed Strategy</div>
+
+    <div style="
+      font-family:monospace;
+      font-weight:700;
+      color:#059669;
+      font-size:1.0rem;
+      margin-bottom:4px
+    ">${fmt(mixTot)}</div>
+
+    <div style="
+      font-size:.80rem;
+      color:#4A4A4A;
+      margin-bottom:10px
+    ">All ${sel.length} services · <strong style="color:#1A1A1A">${mixVens.length} vendors</strong></div>
+
+    ${Object.entries(mixMap).slice(0,6).map(([s,m])=>`
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:5px 0;
+        border-bottom:1px solid #F0F0F0;
+        gap:8px
+      ">
+        <span style="
+          color:#4A4A4A;
+          font-size:.78rem;
+          overflow:hidden;
+          text-overflow:ellipsis;
+          white-space:nowrap;
+          max-width:45%;
+          flex-shrink:0
+        ">${esc(s.length>22?s.substring(0,22)+'…':s)}</span>
+
+        <span style="
+          background:${vcol(m.vendor)};
+          color:#ffffff;
+          border-radius:2px;
+          padding:2px 7px;
+          font-size:.70rem;
+          font-weight:700;
+          white-space:nowrap;
+          flex-shrink:0
+        ">${esc(m.vendor)}</span>
+
+        <span style="
+          font-family:monospace;
+          font-weight:700;
+          color:#059669;
+          font-size:.82rem;
+          white-space:nowrap;
+          flex-shrink:0
+        ">${fmt(m.price)}</span>
+      </div>
+    `).join('')}
+
+    ${Object.keys(mixMap).length>6?`
+      <div style="
+        font-size:.72rem;
+        color:#7D7D7D;
+        padding-top:5px
+      ">+${Object.keys(mixMap).length-6} more services</div>
+    `:''}
   </div>`;
-  html+=`<button onclick="chatAsk('Optimal strategy for: $${sel.slice(0,3).join(', ')}$${sel.length>3?' and '+(sel.length-3)+' more':''}?')" style="width:100%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:var(--r);padding:9px;font-size:.80rem;font-weight:700;cursor:pointer;font-family:var(--fs);margin-top:5px">Ask AI for Full Strategy</button>`;
+
+  html+=`<button
+    onclick="chatAsk('Optimal strategy for: ${sel.slice(0,3).map(s=>esc(s)).join(', ')}${sel.length>3?' and '+(sel.length-3)+' more':''}?')"
+    style="
+      width:100%;
+      background:linear-gradient(135deg,#667eea,#764ba2);
+      color:#ffffff;
+      border:none;
+      border-radius:4px;
+      padding:10px;
+      font-size:.82rem;
+      font-weight:700;
+      cursor:pointer;
+      font-family:var(--fs);
+      margin-top:8px
+    ">Ask AI for Full Strategy</button>`;
+
   el.innerHTML=html;
 }
 
